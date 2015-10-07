@@ -2,6 +2,7 @@ package hk.org.hongchi.orienteering;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,9 +17,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.android.gms.common.GoogleApiAvailability;
+
 public class LoginActivity extends AppCompatActivity {
     private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "john:hello", "barter:world"
+            "abc:abc", "barter:world"
     };
 
     private UserLoginTask loginTask = null;
@@ -57,6 +60,8 @@ public class LoginActivity extends AppCompatActivity {
 
         loginFormView = findViewById(R.id.login_form);
         progressView = findViewById(R.id.login_progress);
+
+        GoogleApiAvailability.getInstance().getOpenSourceSoftwareLicenseInfo(this);
     }
 
     private void attemptLogin() {
@@ -99,11 +104,11 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private boolean isUsernameValid(String username) {
-        return username.length() > 4;
+        return true;
     }
 
     private boolean isPasswordValid(String password) {
-        return password.length() > 4;
+        return true;
     }
 
     private void showProgress(final boolean show) {
@@ -160,6 +165,9 @@ public class LoginActivity extends AppCompatActivity {
             showProgress(false);
 
             if (success) {
+                Intent i = new Intent(LoginActivity.this, MainActivity.class);
+                startActivity(i);
+
                 finish();
             } else {
                 passwordView.setError(getString(R.string.error_incorrect_password));
