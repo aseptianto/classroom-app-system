@@ -23,16 +23,16 @@ import java.util.List;
 
 
 public class Route {
-    static String LANGUAGE_SPANISH = "es";
-    static String LANGUAGE_ENGLISH = "en";
-    static String LANGUAGE_FRENCH = "fr";
-    static String LANGUAGE_GERMAN = "de";
-    static String LANGUAGE_CHINESE_SIMPLIFIED = "zh-CN";
-    static String LANGUAGE_CHINESE_TRADITIONAL = "zh-TW";
-    static String TRANSPORT_DRIVING = "driving";
-    static String TRANSPORT_WALKING = "walking";
-    static String TRANSPORT_BIKE = "bicycling";
-    static String TRANSPORT_TRANSIT = "transit";
+    public static final String LANGUAGE_SPANISH = "es";
+    public static final String LANGUAGE_ENGLISH = "en";
+    public static final String LANGUAGE_FRENCH = "fr";
+    public static final String LANGUAGE_GERMAN = "de";
+    public static final String LANGUAGE_CHINESE_SIMPLIFIED = "zh-CN";
+    public static final String LANGUAGE_CHINESE_TRADITIONAL = "zh-TW";
+    public static final String TRANSPORT_DRIVING = "driving";
+    public static final String TRANSPORT_WALKING = "walking";
+    public static final String TRANSPORT_BIKE = "bicycling";
+    public static final String TRANSPORT_TRANSIT = "transit";
     public Polyline line;
     GoogleMap mMap;
     Context context;
