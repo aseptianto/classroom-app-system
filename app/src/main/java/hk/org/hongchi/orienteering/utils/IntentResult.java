@@ -1,4 +1,4 @@
-package hk.org.hongchi.orienteering;
+package hk.org.hongchi.orienteering.utils;
 
 public final class IntentResult {
 

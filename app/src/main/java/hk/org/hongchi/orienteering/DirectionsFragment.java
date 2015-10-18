@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import hk.org.hongchi.orienteering.maps.MapDirection;
+
 public class DirectionsFragment extends Fragment {
     private List<MapDirection> directions = new ArrayList<MapDirection>();
 
@@ -20,7 +22,29 @@ public class DirectionsFragment extends Fragment {
     private RecyclerView.Adapter<DirectionsListAdapter.ViewHolder> dirListAdapter;
     private LinearLayoutManager dirListManager;
 
+    private MapDirection currentDirection;
+
+    private TextView txtLocationName;
+    private TextView txtLocationDesc;
+
     public DirectionsFragment() {
+        currentDirection = new MapDirection("HKUST Library", "A place filled with books.", 22.33801, 114.26414);
+    }
+
+    public List<MapDirection> getDirections() {
+        return directions;
+    }
+
+    public void setDirections(List<MapDirection> directions) {
+        this.directions = directions;
+    }
+
+    public MapDirection getCurrentDirection() {
+        return currentDirection;
+    }
+
+    public void setCurrentDirection(MapDirection currentDirection) {
+        this.currentDirection = currentDirection;
     }
 
     @Override
@@ -44,6 +68,11 @@ public class DirectionsFragment extends Fragment {
         dirListAdapter = new DirectionsListAdapter();
         dirListView.setAdapter(dirListAdapter);
 
+        txtLocationName = (TextView) view.findViewById(R.id.location_title);
+        txtLocationDesc = (TextView) view.findViewById(R.id.location_desc);
+
+        txtLocationName.setText(currentDirection.getName());
+        txtLocationDesc.setText(currentDirection.getDescription());
 
         return view;
     }

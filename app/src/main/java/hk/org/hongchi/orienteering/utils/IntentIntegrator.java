@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hk.org.hongchi.orienteering;
+package hk.org.hongchi.orienteering.utils;
 
 import android.app.Activity;
 import android.app.AlertDialog;

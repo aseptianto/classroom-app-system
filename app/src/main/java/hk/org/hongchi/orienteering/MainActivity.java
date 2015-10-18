@@ -15,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -22,17 +23,29 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 
+import hk.org.hongchi.orienteering.maps.MapDirection;
+import hk.org.hongchi.orienteering.maps.Route;
+import hk.org.hongchi.orienteering.utils.IntentIntegrator;
+import hk.org.hongchi.orienteering.utils.IntentResult;
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, LocationListener, DirectionsFragment.DirectionsClickListener {
     private LocationManager locationManager;
     private GoogleMap map;
+    private Route route;
+
+    private DirectionsFragment directionsFragment;
+    private Button btnQuiz;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        directionsFragment = (DirectionsFragment) getFragmentManager().findFragmentById(R.id.directions);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -46,9 +59,29 @@ public class MainActivity extends AppCompatActivity
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
         map.setMyLocationEnabled(true);
 
+        route = new Route();
+
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
-                0.01f, this);
+                1f, this);
+
+        Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        if (location != null) {
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(
+                    new CameraPosition(new LatLng(location.getLatitude(), location.getLongitude()), 16, 0, location.getBearing())));
+            route.drawRoute(map, this, new LatLng(location.getLatitude(), location.getLongitude()), directionsFragment.getCurrentDirection().toLatLng(), false, Route.LANGUAGE_ENGLISH);
+        }
+
+        btnQuiz = (Button) findViewById(R.id.quizButton);
+        btnQuiz.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(MainActivity.this, QuizActivity.class);
+                i.putExtra("quizType", QuizActivity.QUIZ_MULTIPLE_CHOICE);
+
+                startActivity(i);
+            }
+        });
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -121,7 +154,11 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onLocationChanged(Location location) {
         map.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition(new LatLng(location.getLatitude(), location.getLongitude()), 15, 0, location.getBearing())));
+                new CameraPosition(new LatLng(location.getLatitude(), location.getLongitude()), map.getCameraPosition().zoom, 0, location.getBearing())));
+        System.out.println(location.getLatitude() + " " + location.getLongitude() + " " + directionsFragment.getCurrentDirection().getLatitude() + " " + directionsFragment.getCurrentDirection().getLongitude());
+
+        route.clearRoute();
+        route.drawRoute(map, this, new LatLng(location.getLatitude(), location.getLongitude()), directionsFragment.getCurrentDirection().toLatLng(), false, Route.LANGUAGE_ENGLISH);
     }
 
     @Override
