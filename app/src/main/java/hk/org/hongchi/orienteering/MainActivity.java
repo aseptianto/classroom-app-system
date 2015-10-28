@@ -1,12 +1,11 @@
 package hk.org.hongchi.orienteering;
 
 import android.content.Intent;
-import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -16,26 +15,37 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.keysolutions.ddpclient.android.DDPBroadcastReceiver;
+import com.keysolutions.ddpclient.android.DDPStateSingleton;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
-import hk.org.hongchi.orienteering.maps.MapDirection;
+import java.util.Map;
+
 import hk.org.hongchi.orienteering.maps.Route;
+import hk.org.hongchi.orienteering.models.Place;
 import hk.org.hongchi.orienteering.utils.IntentIntegrator;
 import hk.org.hongchi.orienteering.utils.IntentResult;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, LocationListener, DirectionsFragment.DirectionsClickListener {
+        implements NavigationView.OnNavigationItemSelectedListener, PlacesFragment.DirectionsClickListener, PlacesFragment.Callbacks {
     private LocationManager locationManager;
     private GoogleMap map;
     private Route route;
 
-    private DirectionsFragment directionsFragment;
+    private SlidingUpPanelLayout slidingLayout;
+    private PlacesFragment placesFragment;
     private Button btnQuiz;
+
+    private TextView txtStudentName;
+
+    private DDPBroadcastReceiver ddpReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +55,8 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        directionsFragment = (DirectionsFragment) getFragmentManager().findFragmentById(R.id.directions);
+        slidingLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        placesFragment = (PlacesFragment) getFragmentManager().findFragmentById(R.id.directions);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -62,26 +73,8 @@ public class MainActivity extends AppCompatActivity
         route = new Route();
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
-                1f, this);
-
-        Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        if (location != null) {
-            map.moveCamera(CameraUpdateFactory.newCameraPosition(
-                    new CameraPosition(new LatLng(location.getLatitude(), location.getLongitude()), 16, 0, location.getBearing())));
-            route.drawRoute(map, this, new LatLng(location.getLatitude(), location.getLongitude()), directionsFragment.getCurrentDirection().toLatLng(), false, Route.LANGUAGE_ENGLISH);
-        }
-
-        btnQuiz = (Button) findViewById(R.id.quizButton);
-        btnQuiz.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, QuizActivity.class);
-                i.putExtra("quizType", QuizActivity.QUIZ_MULTIPLE_CHOICE);
-
-                startActivity(i);
-            }
-        });
+//        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
+//                1f, this);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -91,6 +84,54 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        View headerView = navigationView.inflateHeaderView(R.layout.nav_header_main);
+        txtStudentName = (TextView) headerView.findViewById(R.id.student_name);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        ddpReceiver = new DDPBroadcastReceiver(DDPService.getInstance(), this) {
+            @Override
+            protected void onDDPConnect(DDPStateSingleton ddp) {
+                super.onDDPConnect(ddp);
+
+                String userId = ddp.getUserId();
+
+                ddp.subscribe("users", new Object[]{userId});
+                ddp.subscribe("sessions", new Object[]{userId});
+                ddp.subscribe("questions", new Object[]{userId});
+                ddp.subscribe("places", new Object[]{userId});
+                ddp.subscribe("submissions", new Object[]{userId});
+            }
+
+            @Override
+            protected void onSubscriptionUpdate(String changeType,
+                                                String subscriptionName, String docId) {
+                if (subscriptionName.equals("users")) {
+                    updateUserInfo();
+                }
+            }
+        };
+        DDPService.getInstance().connectIfNeeded();    // start connection process if we're not connected
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        if (ddpReceiver != null) {
+            LocalBroadcastManager.getInstance(this)
+                    .unregisterReceiver(ddpReceiver);
+            ddpReceiver = null;
+        }
+    }
+
+    private void updateUserInfo() {
+        Map<String, Object> userInfo = DDPService.getInstance().getUser();
+        txtStudentName.setText((String) userInfo.get("name"));
     }
 
     @Override
@@ -98,9 +139,9 @@ public class MainActivity extends AppCompatActivity
         IntentResult result =
                 IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
         if (result != null) {
-            String contents = result.getContents();
-            if (contents != null) {
-                System.out.println(result.getContents());
+            Place current = DDPService.getInstance().getPlace(result.getContents());
+            if (current != null) {
+                placesFragment.unlockDestination(current);
             }
         }
     }
@@ -125,14 +166,18 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_logout) {
+            DDPService.getInstance().logout();
+            Intent i = new Intent(this, LoginActivity.class);
+
+            startActivity(i);
+            finish();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
@@ -152,32 +197,20 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition(new LatLng(location.getLatitude(), location.getLongitude()), map.getCameraPosition().zoom, 0, location.getBearing())));
-        System.out.println(location.getLatitude() + " " + location.getLongitude() + " " + directionsFragment.getCurrentDirection().getLatitude() + " " + directionsFragment.getCurrentDirection().getLongitude());
-
-        route.clearRoute();
-        route.drawRoute(map, this, new LatLng(location.getLatitude(), location.getLongitude()), directionsFragment.getCurrentDirection().toLatLng(), false, Route.LANGUAGE_ENGLISH);
+    public void onPlaceSelect(View trackItemView, Place track, int position) {
+        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
     }
 
     @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
+    public void onDestinationUpdate(Place current, Place dest) {
+        map.clear();
 
-    }
+        map.moveCamera(CameraUpdateFactory.newCameraPosition(
+                new CameraPosition(current.toLatLng(), 16, 0, map.getCameraPosition().bearing)));
 
-    @Override
-    public void onProviderEnabled(String provider) {
+        map.addMarker(new MarkerOptions().position(current.toLatLng()));
+        map.addMarker(new MarkerOptions().position(dest.toLatLng()));
 
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
-
-    @Override
-    public void onMapDirectionSelect(View trackItemView, MapDirection track, int position) {
-
+        route.drawRoute(map, this, current.toLatLng(), dest.toLatLng(), false, Route.LANGUAGE_ENGLISH);
     }
 }

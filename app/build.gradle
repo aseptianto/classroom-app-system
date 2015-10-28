@@ -34,6 +34,5 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.1.0'
     compile 'com.sothree.slidinguppanel:library:3.2.0'
     compile 'com.google.zxing:core:3.2.1'
-
-
+    compile 'com.keysolutions:android-ddp-client:1.0.1.0'
 }

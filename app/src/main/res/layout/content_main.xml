@@ -39,7 +39,7 @@
 
         <fragment
             android:id="@+id/directions"
-            class="hk.org.hongchi.orienteering.DirectionsFragment"
+            class="hk.org.hongchi.orienteering.PlacesFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center|top" />

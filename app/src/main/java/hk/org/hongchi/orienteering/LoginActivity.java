@@ -2,10 +2,11 @@ package hk.org.hongchi.orienteering;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.ProgressDialog;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -18,18 +19,17 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.keysolutions.ddpclient.android.DDPBroadcastReceiver;
+import com.keysolutions.ddpclient.android.DDPStateSingleton;
 
 public class LoginActivity extends AppCompatActivity {
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "abc:abc", "barter:world"
-    };
-
-    private UserLoginTask loginTask = null;
-
     private AutoCompleteTextView usernameView;
     private EditText passwordView;
     private View progressView;
     private View loginFormView;
+
+    private DDPBroadcastReceiver loginReceiver;
+    private ProgressDialog connectDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,13 +62,10 @@ public class LoginActivity extends AppCompatActivity {
         progressView = findViewById(R.id.login_progress);
 
         GoogleApiAvailability.getInstance().getOpenSourceSoftwareLicenseInfo(this);
+        DDPService.getInstance().connectIfNeeded();
     }
 
     private void attemptLogin() {
-        if (loginTask != null) {
-            return;
-        }
-
         usernameView.setError(null);
         passwordView.setError(null);
 
@@ -98,8 +95,56 @@ public class LoginActivity extends AppCompatActivity {
             focusView.requestFocus();
         } else {
             showProgress(true);
-            loginTask = new UserLoginTask(username, password);
-            loginTask.execute((Void) null);
+
+            DDPService.getInstance().login(username, password);
+        }
+    }
+
+    protected void onResume() {
+        super.onResume();
+
+        connectDialog = ProgressDialog.show(this, "Loading", "Connecting to server...");
+        connectDialog.show();
+
+        loginReceiver = new DDPBroadcastReceiver(DDPService.getInstance(), this) {
+            @Override
+            protected void onDDPConnect(DDPStateSingleton ddp) {
+                super.onDDPConnect(ddp);
+
+                connectDialog.dismiss();
+            }
+
+            @Override
+            protected void onError(String title, String msg) {
+                showProgress(false);
+
+                connectDialog.dismiss();
+
+                passwordView.setError(msg);
+                passwordView.requestFocus();
+            }
+
+            @Override
+            protected void onLogin() {
+                Intent i = new Intent(LoginActivity.this, MainActivity.class);
+                startActivity(i);
+
+                connectDialog.dismiss();
+
+                finish();
+            }
+
+        };
+
+        DDPService.getInstance().connectIfNeeded();    // try reconnecting
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (loginReceiver != null) {
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(loginReceiver);
+            loginReceiver = null;
         }
     }
 
@@ -135,50 +180,6 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             progressView.setVisibility(show ? View.VISIBLE : View.GONE);
             loginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String username;
-        private final String password;
-
-        UserLoginTask(String email, String password) {
-            username = email;
-            this.password = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(username)) {
-                    return pieces[1].equals(password);
-                }
-            }
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            loginTask = null;
-            showProgress(false);
-
-            if (success) {
-                Intent i = new Intent(LoginActivity.this, MainActivity.class);
-                startActivity(i);
-
-                finish();
-            } else {
-                passwordView.setError(getString(R.string.error_incorrect_password));
-                passwordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            loginTask = null;
-            showProgress(false);
         }
     }
 }

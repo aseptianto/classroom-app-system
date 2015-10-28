@@ -1,25 +1,52 @@
 package hk.org.hongchi.orienteering;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
+import android.support.v7.app.AppCompatActivity;
+
+import hk.org.hongchi.orienteering.models.Place;
 
 public class QuizActivity extends AppCompatActivity {
-    public static final int QUIZ_MULTIPLE_CHOICE = 0;
-    public static final int QUIZ_FREE_RESPONSE = 3;
-    public static final int QUIZ_PHOTO = 1;
-    public static final int QUIZ_VIDEO = 2;
+    private ViewPager pager;
+    private PagerAdapter pagerAdapter;
+
+    private Place place;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        switch (getIntent().getIntExtra("quizType", QUIZ_MULTIPLE_CHOICE)) {
-            case QUIZ_MULTIPLE_CHOICE:
-                setContentView(R.layout.activity_quiz);
-                break;
-            default:
-                System.out.println("An unsupported quiz type was requested.");
-                break;
+        place = getIntent().getParcelableExtra("place");
+
+        setContentView(R.layout.activity_quiz);
+
+        pager = (ViewPager) findViewById(R.id.pager);
+        pagerAdapter = new QuestionPagerAdapter(getSupportFragmentManager());
+        pager.setAdapter(pagerAdapter);
+    }
+
+    private class QuestionPagerAdapter extends FragmentStatePagerAdapter {
+        public QuestionPagerAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            QuestionFragment questionFragment = new QuestionFragment();
+            Bundle arguments = new Bundle();
+            arguments.putParcelable("question", place.getQuestions().get(position));
+            questionFragment.setArguments(arguments);
+
+            return questionFragment;
+        }
+
+        @Override
+        public int getCount() {
+            return place.getQuestions().size();
         }
     }
 }

@@ -134,9 +134,9 @@ public class Route {
         StringBuilder urlString = new StringBuilder();
 
         if (mode == null)
-            mode = "driving";
+            mode = "walking";
 
-        urlString.append("http://hk.org.hongchi.orienteering.maps.googleapis.com/hk.org.hongchi.orienteering.maps/api/directions/json");
+        urlString.append("http://maps.googleapis.com/maps/api/directions/json");
         urlString.append("?origin=");// from
         urlString.append(points.get(0).latitude);
         urlString.append(',');
@@ -173,7 +173,7 @@ public class Route {
         if (mode == null)
             mode = "driving";
 
-        urlString.append("http://hk.org.hongchi.orienteering.maps.googleapis.com/hk.org.hongchi.orienteering.maps/api/directions/json");
+        urlString.append("http://maps.googleapis.com/maps/api/directions/json");
         urlString.append("?origin=");// from
         urlString.append(Double.toString(sourcelat));
         urlString.append(",");
